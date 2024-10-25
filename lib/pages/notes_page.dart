@@ -6,6 +6,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../widgets/grid_view_widget.dart';
+import 'note_details_page.dart';
 import 'settings_page.dart';
 
 class NotesPage extends ConsumerWidget {
@@ -30,6 +31,15 @@ class NotesPage extends ConsumerWidget {
             icon: Icon(Icons.settings),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => NoteDetailsPage(),
+          ),
+        ),
+        child: Icon(Icons.add, color: Colors.black,),
       ),
       body: GridViewWidget(),
     );

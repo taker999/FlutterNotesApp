@@ -23,6 +23,6 @@ class LanguageNotifier extends StateNotifier<String> {
   }
 }
 
-final languageNotifierProvider = StateNotifierProvider<LanguageNotifier, String>((ref) {
+final languageProvider = StateNotifierProvider<LanguageNotifier, String>((ref) {
   return LanguageNotifier();
 });

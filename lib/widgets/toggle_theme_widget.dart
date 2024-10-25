@@ -14,7 +14,7 @@ class ToggleThemeWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     log('build toggle theme widget');
 
-    final themeData = ref.watch(themeNotifierProvider);
+    final themeData = ref.watch(themeProvider);
     final localizations = AppLocalizations.of(context)!;
 
     return Container(
@@ -38,7 +38,7 @@ class ToggleThemeWidget extends ConsumerWidget {
           CupertinoSwitch(
             value: themeData == darkMode ? true : false,
             onChanged: (value) {
-              ref.read(themeNotifierProvider.notifier).toggleTheme();
+              ref.read(themeProvider.notifier).toggleTheme();
             },
           ),
         ],

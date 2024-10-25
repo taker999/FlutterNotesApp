@@ -28,7 +28,7 @@ class LanguageDropdownWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     log('build lang dropdown widget');
 
-    final language = ref.watch(languageNotifierProvider);
+    final language = ref.watch(languageProvider);
     final localizations = AppLocalizations.of(context)!;
 
     return Container(
@@ -71,7 +71,7 @@ class LanguageDropdownWidget extends ConsumerWidget {
             onChanged: (lang) {
               if (lang != null) {
                 ref
-                    .read(languageNotifierProvider.notifier)
+                    .read(languageProvider.notifier)
                     .changeLanguage(lang);
               }
             },

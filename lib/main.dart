@@ -16,8 +16,8 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final language = ref.watch(languageNotifierProvider);
-    final themeData = ref.watch(themeNotifierProvider);
+    final language = ref.watch(languageProvider);
+    final themeData = ref.watch(themeProvider);
 
     return MaterialApp(
       title: 'Notes',
