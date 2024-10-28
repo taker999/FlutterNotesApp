@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../databases/note_provider.dart';
 import '../models/note.dart';
+import '../utils/date_format.dart';
 import '../widgets/add_tag_dialog.dart';
 import '../widgets/quill_editor_widget.dart';
 import '../widgets/quill_toolbar_widget.dart';
@@ -25,6 +26,7 @@ class _NoteDetailsPageState extends ConsumerState<NoteDetailsPage> {
   TextEditingController? _titleController;
 
   final QuillController _quillController = QuillController.basic();
+  List<String> tags = [];
 
   @override
   void initState() {
@@ -33,12 +35,8 @@ class _NoteDetailsPageState extends ConsumerState<NoteDetailsPage> {
     if (widget.note != null) {
       _quillController.document =
           Document.fromJson(jsonDecode(widget.note!.contentJson));
-      if (widget.note!.tags != null) {
-        for (var tag in widget.note!.tags!) {
-          ref.read(noteProvider.notifier).addTag(tag);
-        }
-      }
     }
+    tags = widget.note?.tags ?? [];
   }
 
   @override
@@ -57,9 +55,18 @@ class _NoteDetailsPageState extends ConsumerState<NoteDetailsPage> {
       appBar: AppBar(
         actions: [
           IconButton(
-              onPressed: () => ref
-                  .read(noteProvider.notifier)
-                  .addNote(_titleController!.text, _quillController.document),
+              onPressed: () {
+                if (widget.note != null) {
+                  ref.read(noteProvider.notifier).updateNote(
+                      widget.note!.id as int,
+                      _titleController!.text,
+                      tags,
+                      _quillController.document);
+                } else {
+                  ref.read(noteProvider.notifier).addNote(
+                      _titleController!.text, tags, _quillController.document);
+                }
+              },
               icon: Icon(Icons.edit)),
           IconButton(onPressed: () {}, icon: Icon(Icons.more_vert)),
         ],
@@ -97,7 +104,7 @@ class _NoteDetailsPageState extends ConsumerState<NoteDetailsPage> {
                   Expanded(
                     flex: 3,
                     child: Text(
-                      '24 October 2024, 09:22 PM',
+                      formatMicrosecondsToDate(widget.note!.dateModified),
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -121,7 +128,7 @@ class _NoteDetailsPageState extends ConsumerState<NoteDetailsPage> {
                   Expanded(
                     flex: 3,
                     child: Text(
-                      '24 October 2024, 09:22 PM',
+                      formatMicrosecondsToDate(widget.note!.dateCreated),
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -152,7 +159,8 @@ class _NoteDetailsPageState extends ConsumerState<NoteDetailsPage> {
                                   content: AddTagDialog(),
                                 ),
                               );
-                              if(tag != null && tag.isNotEmpty) {
+                              if (tag != null && tag.isNotEmpty) {
+                                tags.add(tag);
                                 ref.read(noteProvider.notifier).addTag(tag);
                               }
                             },
@@ -161,28 +169,30 @@ class _NoteDetailsPageState extends ConsumerState<NoteDetailsPage> {
                     ],
                   ),
                 ),
-                note.tags != null
-                    ? Expanded(
-                  flex: 3,
-                      child: SizedBox(
-                        height: 50, width: 50,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                            itemCount: note.tags!.length,
-                            itemBuilder: (context, index) => TagWidget(
-                              tag: note.tags![index],
-                              themeColors: themeColors,
-                            ),
-                          ),
-                      ),
-                    )
-                    : Expanded(
-                        flex: 3,
-                        child: Text(
-                          'No tags added',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                if (note.tags != null && tags.isNotEmpty)
+                  Expanded(
+                    flex: 3,
+                    child: SizedBox(
+                      height: 50,
+                      width: 50,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: tags.length,
+                        itemBuilder: (context, index) => TagWidget(
+                          tag: tags[index],
+                          themeColors: themeColors,
                         ),
                       ),
+                    ),
+                  ),
+                if (tags.isEmpty)
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      'No tags added',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
               ],
             ),
 

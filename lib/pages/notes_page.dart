@@ -3,17 +3,19 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_notes_app/databases/note_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../widgets/grid_view_widget.dart';
+import '../widgets/tags_list_view_widget.dart';
 import 'note_details_page.dart';
 import 'settings_page.dart';
 
-class NotesPage extends ConsumerWidget {
+class NotesPage extends StatelessWidget {
   const NotesPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     log('build notes');
 
     final localizations = AppLocalizations.of(context)!;
@@ -39,9 +41,17 @@ class NotesPage extends ConsumerWidget {
             builder: (_) => NoteDetailsPage(),
           ),
         ),
-        child: Icon(Icons.add, color: Colors.black,),
+        child: Icon(
+          Icons.add,
+          color: Colors.black,
+        ),
       ),
-      body: GridViewWidget(),
+      body: Column(
+        children: [
+          TagsListViewWidget(),
+          GridViewWidget(),
+        ],
+      ),
     );
   }
 }

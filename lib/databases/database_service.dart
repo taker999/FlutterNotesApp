@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter_notes_app/models/note.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -45,24 +47,45 @@ class DatabaseService {
 
   Future<void> addNote(Note note) async {
     final db = await database;
-    await db.insert(
-      'notes',
-      {
-        "title": note.title,
-        "content": note.content,
-        "contentJson": note.contentJson,
-        "dateCreated": note.dateCreated,
-        "dateModified": note.dateModified,
-      },
-    );
-    for (var tag in note.tags!) {
-      await db.insert(
-        'tags',
+
+    // Start a transaction to ensure data integrity
+    await db.transaction((txn) async {
+      // Insert the note
+      final noteId = await txn.insert(
+        'notes',
         {
-          "name": tag,
+          "title": note.title,
+          "content": note.content,
+          "contentJson": note.contentJson,
+          "dateCreated": note.dateCreated,
+          "dateModified": note.dateModified,
         },
       );
-    }
+
+      // Insert associated tags and create entries in note_tags
+      if (note.tags != null) {
+        for (var tag in note.tags!) {
+          // Insert tag if it doesn't exist
+          final tagId = await txn.insert(
+            'tags',
+            {
+              "name": tag,
+            },
+            conflictAlgorithm:
+                ConflictAlgorithm.ignore, // Prevent duplicate tags
+          );
+
+          // Associate tag with the note
+          await txn.insert(
+            'note_tags',
+            {
+              "note_id": noteId,
+              "tag_id": tagId,
+            },
+          );
+        }
+      }
+    });
   }
 
   Future<List<Note>> getNotes() async {
@@ -103,20 +126,99 @@ class DatabaseService {
     return notes;
   }
 
+  Future<void> updateNote(Note updatedNote) async {
+    final db = await database;
+
+    // Start a transaction to ensure data integrity
+    await db.transaction((txn) async {
+      // Update the note
+      await txn.update(
+        'notes',
+        {
+          "title": updatedNote.title,
+          "content": updatedNote.content,
+          "contentJson": updatedNote.contentJson,
+          "dateModified": updatedNote.dateModified,
+        },
+        where: "id = ?",
+        whereArgs: [updatedNote.id],
+      );
+
+      // Clear existing associations in note_tags for this note
+      await txn.delete(
+        'note_tags',
+        where: "note_id = ?",
+        whereArgs: [updatedNote.id],
+      );
+
+      // Insert associated tags and create new entries in note_tags
+      if (updatedNote.tags != null && updatedNote.tags!.isNotEmpty) {
+        for (var tag in updatedNote.tags!) {
+          // Insert tag if it doesn't exist
+          final tagId = await txn.insert(
+            'tags',
+            {
+              "name": tag,
+            },
+            conflictAlgorithm:
+                ConflictAlgorithm.ignore, // Prevent duplicate tags
+          );
+
+          // Associate tag with the note
+          await txn.insert(
+            'note_tags',
+            {
+              "note_id": updatedNote.id,
+              "tag_id": tagId,
+            },
+          );
+        }
+        // delete tags that are not associated with any notes
+        await txn.rawDelete('''
+        DELETE FROM tags
+        WHERE id NOT IN (SELECT tag_id FROM note_tags);
+      ''');
+      }
+    });
+  }
+
   Future<void> deleteNote(int id) async {
     final db = await database;
-    await db.delete(
-      "notes",
-      where: "id = ?",
-      whereArgs: [
-        id,
-      ],
-    );
-    await db.rawDelete('''
-      DELETE FROM tags
-      WHERE id IN (
-      SELECT id FROM tags
-      WHERE id NOT IN (SELECT tag_id FROM note_tags)
-    );''');
+
+    // Start a transaction to ensure data integrity
+    await db.transaction((txn) async {
+      // Delete from note_tags where note_id matches
+      await txn.delete(
+        "note_tags",
+        where: "note_id = ?",
+        whereArgs: [id],
+      );
+
+      // Delete the note itself
+      await txn.delete(
+        "notes",
+        where: "id = ?",
+        whereArgs: [id],
+      );
+
+      // delete tags that are not associated with any notes
+      await txn.rawDelete('''
+        DELETE FROM tags
+        WHERE id NOT IN (SELECT tag_id FROM note_tags);
+      ''');
+    });
   }
+
+  Future<List<String>> getTags() async {
+    final db = await database;
+
+    // Query the tags table to get all tag names
+    final List<Map<String, dynamic>> tagsData = await db.query('tags');
+
+    // Extract tag names into a List<String>
+    List<String> tags = tagsData.map((tag) => tag['name'] as String).toList();
+
+    return tags;
+  }
+
 }
