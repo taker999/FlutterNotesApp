@@ -24,7 +24,6 @@ class NoteDetailsPage extends ConsumerStatefulWidget {
 
 class _NoteDetailsPageState extends ConsumerState<NoteDetailsPage> {
   TextEditingController? _titleController;
-
   final QuillController _quillController = QuillController.basic();
   List<String> tags = [];
 
@@ -36,7 +35,7 @@ class _NoteDetailsPageState extends ConsumerState<NoteDetailsPage> {
       _quillController.document =
           Document.fromJson(jsonDecode(widget.note!.contentJson));
     }
-    tags = widget.note?.tags ?? [];
+    tags = List.from(widget.note?.tags ?? []); // Use List.from to copy
   }
 
   @override
@@ -48,26 +47,32 @@ class _NoteDetailsPageState extends ConsumerState<NoteDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final note = ref.watch(noteProvider);
+    // final note = ref.watch(noteProvider);
     final themeColors = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         actions: [
           IconButton(
-              onPressed: () {
-                if (widget.note != null) {
-                  ref.read(noteProvider.notifier).updateNote(
-                      widget.note!.id as int,
-                      _titleController!.text,
-                      tags,
-                      _quillController.document);
-                } else {
-                  ref.read(noteProvider.notifier).addNote(
-                      _titleController!.text, tags, _quillController.document);
-                }
-              },
-              icon: Icon(Icons.edit)),
+            onPressed: () {
+              if (widget.note != null) {
+                ref.read(noteProvider.notifier).updateNote(
+                  widget.note!.id as int,
+                  _titleController!.text,
+                  tags,
+                  _quillController.document,
+                );
+              } else {
+                ref.read(noteProvider.notifier).addNote(
+                  _titleController!.text,
+                  tags,
+                  _quillController.document,
+                );
+              }
+              Navigator.pop(context); // Optionally pop back after saving
+            },
+            icon: Icon(Icons.edit),
+          ),
           IconButton(onPressed: () {}, icon: Icon(Icons.more_vert)),
         ],
       ),
@@ -75,101 +80,74 @@ class _NoteDetailsPageState extends ConsumerState<NoteDetailsPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           children: [
-            // title
             TextField(
               controller: _titleController,
               maxLines: null,
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'Title',
-                  hintStyle: TextStyle(color: themeColors.secondary)),
+                border: InputBorder.none,
+                hintText: 'Title',
+                hintStyle: TextStyle(color: themeColors.secondary),
+              ),
             ),
-
-            // last modified
             if (widget.note != null) ...[
+              // Last Modified and Created At
               Row(
                 children: [
                   Expanded(
                     flex: 2,
-                    child: Row(
-                      children: [
-                        Text(
-                          'Last Modified',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
+                    child: Text('Last Modified', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                   Expanded(
                     flex: 3,
-                    child: Text(
-                      formatMicrosecondsToDate(widget.note!.dateModified),
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                    child: Text(formatMicrosecondsToDate(widget.note!.dateModified),
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
-
-              // created at
               Row(
                 children: [
                   Expanded(
                     flex: 2,
-                    child: Row(
-                      children: [
-                        Text(
-                          'Created At',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
+                    child: Text('Created At', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                   Expanded(
                     flex: 3,
-                    child: Text(
-                      formatMicrosecondsToDate(widget.note!.dateCreated),
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                    child: Text(formatMicrosecondsToDate(widget.note!.dateCreated),
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
             ],
-
-            // tags
+            // Tags
             Row(
               children: [
                 Expanded(
                   flex: 2,
                   child: Row(
                     children: [
-                      Text(
-                        'Tags',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () {},
-                        child: InkWell(
-                            onTap: () async {
-                              final tag = await showDialog(
-                                context: context,
-                                builder: (_) => AlertDialog(
-                                  backgroundColor: themeColors.secondary,
-                                  content: AddTagDialog(),
-                                ),
-                              );
-                              if (tag != null && tag.isNotEmpty) {
-                                tags.add(tag);
-                                ref.read(noteProvider.notifier).addTag(tag);
-                              }
-                            },
-                            child: Icon(Icons.add_rounded)),
+                      Text('Tags', style: TextStyle(fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: Icon(Icons.add_rounded),
+                        onPressed: () async {
+                          final tag = await showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              backgroundColor: themeColors.secondary,
+                              content: AddTagDialog(),
+                            ),
+                          );
+                          if (tag != null && tag.isNotEmpty) {
+                            setState(() {
+                              tags.add(tag); // Add tag and trigger rebuild
+                            });
+                          }
+                        },
                       ),
                     ],
                   ),
                 ),
-                if (note.tags != null && tags.isNotEmpty)
+                if (tags.isNotEmpty)
                   Expanded(
                     flex: 3,
                     child: SizedBox(
@@ -188,23 +166,13 @@ class _NoteDetailsPageState extends ConsumerState<NoteDetailsPage> {
                 if (tags.isEmpty)
                   Expanded(
                     flex: 3,
-                    child: Text(
-                      'No tags added',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                    child: Text('No tags added', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
               ],
             ),
-
             Divider(),
-
-            QuillEditorWidget(
-              quillController: _quillController,
-            ),
-            QuillToolbarWidget(
-              themeColors: themeColors,
-              quillController: _quillController,
-            ),
+            QuillEditorWidget(quillController: _quillController),
+            QuillToolbarWidget(themeColors: themeColors, quillController: _quillController),
           ],
         ),
       ),

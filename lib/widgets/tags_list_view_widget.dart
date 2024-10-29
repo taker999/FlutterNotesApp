@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_notes_app/databases/notes_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../databases/note_provider.dart';
-
 class TagsListViewWidget extends ConsumerWidget {
   const TagsListViewWidget({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tags = ref.watch(notesProvider.notifier).tags;
+    final tags = ref.watch(notesProvider.select((selector) => selector.tags));
 
     return tags.isNotEmpty ? SizedBox(
         height: 50,

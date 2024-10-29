@@ -119,7 +119,7 @@ class DatabaseService {
         contentJson: note['contentJson'].toString(),
         dateCreated: note['dateCreated'] as int,
         dateModified: note['dateModified'] as int,
-        tags: tags.isNotEmpty ? tags : null,
+        tags: tags.isNotEmpty ? tags : [],
       ));
     }
 

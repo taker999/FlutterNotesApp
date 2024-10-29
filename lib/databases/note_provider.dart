@@ -12,17 +12,19 @@ import 'notes_provider.dart';
 
 // Define a state notifier for managing note
 class NoteNotifier extends StateNotifier<Note> {
-  NoteNotifier(this._databaseService, this._refreshNotes) : super(Note(
-    title: '',
-    content: '',
-    contentJson: '',
-    dateCreated: 0,
-    dateModified: 0,
-    tags: null,
-  ));
+  NoteNotifier(this._databaseService, this._refreshNotes, this._refreshTags)
+      : super(Note(
+          title: '',
+          content: '',
+          contentJson: '',
+          dateCreated: 0,
+          dateModified: 0,
+          tags: [],
+        ));
 
   final DatabaseService _databaseService;
   final VoidCallback _refreshNotes;
+  final VoidCallback _refreshTags;
 
   void addTag(String tag) {
     final currentTags = state.tags ?? [];
@@ -34,7 +36,12 @@ class NoteNotifier extends StateNotifier<Note> {
     }
   }
 
-  Future<void> addNote(String title, List<String> tags, Document content) async {
+  void clearTags() {
+    state = state.copyWith(tags: []);
+  }
+
+  Future<void> addNote(
+      String title, List<String> tags, Document content) async {
     final now = DateTime.now().millisecondsSinceEpoch;
 
     // Create the new note object
@@ -48,16 +55,18 @@ class NoteNotifier extends StateNotifier<Note> {
     );
 
     // Update the state directly
-    state = newNote;  // Add the new note to the current state
+    state = newNote; // Add the new note to the current state
 
     // Add the note to the database
     await _databaseService.addNote(newNote);
 
     // Call the refreshNotes callback to fetch the latest notes
     _refreshNotes();
+    _refreshTags;
   }
 
-  Future<void> updateNote(int id, String title, List<String> tags, Document content) async {
+  Future<void> updateNote(
+      int id, String title, List<String> tags, Document content) async {
     final now = DateTime.now().millisecondsSinceEpoch;
 
     // Create the new note object
@@ -72,13 +81,14 @@ class NoteNotifier extends StateNotifier<Note> {
     );
 
     // Update the state directly
-    state = updatedNote;  // Add the new note to the current state
+    state = updatedNote; // Add the new note to the current state
 
     // Add the note to the database
     await _databaseService.updateNote(updatedNote);
 
     // Call the refreshNotes callback to fetch the latest notes
     _refreshNotes();
+    _refreshTags();
   }
 }
 
@@ -86,7 +96,9 @@ class NoteNotifier extends StateNotifier<Note> {
 final noteProvider = StateNotifierProvider<NoteNotifier, Note>((ref) {
   final databaseService = ref.watch(databaseServiceProvider);
   final notesNotifier = ref.watch(notesProvider.notifier);
-  return NoteNotifier(databaseService , () {
-    notesNotifier.fetchNotes(); // Callback to fetch notes
-  });
+  return NoteNotifier(
+    databaseService,
+    () => notesNotifier.fetchNotes(),
+    () => notesNotifier.getTags(),
+  );
 });

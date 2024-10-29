@@ -3,8 +3,6 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:flutter_notes_app/databases/note_provider.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../widgets/grid_view_widget.dart';
 import '../widgets/tags_list_view_widget.dart';
